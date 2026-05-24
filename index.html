@@ -964,7 +964,6 @@ async function submitForm() {
   btn.disabled = true;
   closeConfirm();
 
-  // ✅ Ottimizzazione: comprimi e invia foto in parallelo
   var compressImage = function(file) {
     return new Promise(function(res) {
       var img = new Image();
@@ -982,18 +981,24 @@ async function submitForm() {
   };
 
   try {
-    // ✅ 1. Invia dati testuali
+    // ✅ 1. Genera il folderKey UNA VOLTA sola
     var cards = document.querySelectorAll('.guest-card');
+    var g1Inputs = cards[0].querySelectorAll('input');
+    var firstName = g1Inputs[0] ? g1Inputs[0].value : 'Ospite';
+    var lastName = g1Inputs[1] ? g1Inputs[1].value : '';
+    var checkin = document.getElementById('checkin-date').value;
+    var folderKey = checkin + '_' + firstName + '_' + lastName;
+
+    // ✅ 2. Invia dati testuali
     var params = new URLSearchParams();
     params.append('action','saveData');
-    params.append('Check_in', checkin); params.append('Check_out', checkout);
-    params.append('Arrival_time', arrival); params.append('Total_guests', totGuests);
-    params.append('Privacy_GDPR','Accepted'); params.append('House_rules','Accepted');
+    params.append('Check_in', checkin);
+    params.append('Check_out', document.getElementById('checkout-date').value);
+    params.append('Arrival_time', document.getElementById('arrival-time').value);
+    params.append('Total_guests', document.getElementById('total-guests').value);
+    params.append('Privacy_GDPR','Accepted');
+    params.append('House_rules','Accepted');
     params.append('Num_guests', cards.length);
-
-    var g1Inputs = cards[0].querySelectorAll('input');
-    var folderKey = (g1Inputs[0] ? g1Inputs[0].value : 'Ospite') + '_' + (g1Inputs[1] ? g1Inputs[1].value : '');
-    var fullFolderKey = checkin + '_' + folderKey;
 
     cards.forEach(function(card, i) {
       var n = i + 1;
@@ -1014,7 +1019,7 @@ async function submitForm() {
     // Invia dati testuali (richiesta veloce)
     await fetch(APPS_SCRIPT_URL + '?' + params.toString(), { method:'GET', mode:'no-cors' });
 
-    // ✅ 2. Prepara tutte le foto in parallelo
+    // ✅ 3. Prepara tutte le foto in parallelo
     var photoPromises = [];
     for (var j = 0; j < cards.length; j++) {
       var n2 = j + 1;
@@ -1029,7 +1034,7 @@ async function submitForm() {
             headers:{'Content-Type':'text/plain'},
             body: JSON.stringify({
               action:'savePhoto', 
-              folderKey: fullFolderKey,  // ← Usa lo stesso nome per TUTTE le foto
+              folderKey: folderKey,  // ← Usa lo STESSO folderKey per TUTTE le foto
               photoName:'Doc_Ospite'+n2+'_'+fn+'_'+ln+'.jpg', 
               photoData:b64
             })
@@ -1039,10 +1044,10 @@ async function submitForm() {
       }
     }
 
-    // ✅ 3. Invia tutte le foto in parallelo (velocissimo!)
+    // ✅ 4. Invia tutte le foto in parallelo (velocissimo!)
     await Promise.all(photoPromises);
 
-    // ✅ 4. Elimina sessione Firebase
+    // ✅ 5. Elimina sessione Firebase
     fetch(FIREBASE_URL + '/sessions/' + SESSION_ID + '.json', { method:'DELETE' }).catch(function(){});
 
     document.getElementById('success-overlay').classList.add('show');

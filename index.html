@@ -981,13 +981,13 @@ async function submitForm() {
   };
 
   try {
-    // ✅ 1. Genera il folderKey UNA VOLTA sola
+    // ✅ 1. Genera il folderName e invia i dati testuali
     var cards = document.querySelectorAll('.guest-card');
     var g1Inputs = cards[0].querySelectorAll('input');
     var firstName = g1Inputs[0] ? g1Inputs[0].value : 'Ospite';
     var lastName = g1Inputs[1] ? g1Inputs[1].value : '';
     var checkin = document.getElementById('checkin-date').value;
-    var folderKey = checkin + '_' + firstName + '_' + lastName;
+    var folderName = checkin + '_' + firstName + '_' + lastName;
 
     // ✅ 2. Invia dati testuali
     var params = new URLSearchParams();
@@ -1029,12 +1029,13 @@ async function submitForm() {
         var fn = inp2[0] ? inp2[0].value : 'Ospite' + n2;
         var ln = inp2[1] ? inp2[1].value : '';
         var promise = compressImage(fi2.files[0]).then(function(b64) {
+          // Invia foto con folderName (il nome della cartella)
           return fetch(APPS_SCRIPT_URL, {
             method:'POST', mode:'no-cors',
             headers:{'Content-Type':'text/plain'},
             body: JSON.stringify({
               action:'savePhoto', 
-              folderKey: folderKey,  // ← Usa lo STESSO folderKey per TUTTE le foto
+              folderKey: folderName,  // ← Usa il nome della cartella
               photoName:'Doc_Ospite'+n2+'_'+fn+'_'+ln+'.jpg', 
               photoData:b64
             })
